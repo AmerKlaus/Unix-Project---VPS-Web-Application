@@ -1,0 +1,22 @@
+[
+    {
+      "option": "Yearly Lease",
+      "price" : "5000"
+    },
+     {
+      "option": "One-Time Purchase",
+      "price" : "20000"
+    },
+     {
+      "option": "Level-3 Technical Support",
+      "price" : "3500"
+    },
+	 {
+      "option": "On-Site Training",
+      "price" : "2000"
+    },
+	 {
+      "option": "Cloud Backup",
+      "price" : "300"
+    }
+  ]

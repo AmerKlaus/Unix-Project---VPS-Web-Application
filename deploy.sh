@@ -7,4 +7,4 @@ cd ~/my-web-app
 git pull
 
 # Restart your web server
-sudo service nginx restart
+sudo systemctl restart apache2

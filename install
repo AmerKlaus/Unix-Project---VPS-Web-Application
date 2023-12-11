@@ -1,0 +1,222 @@
+Introduction
+
+This installation guide will walk you through the process of setting up and configuring a web application for automatic deployment on a Virtual Private Server (VPS) using Apache HTTP Server, GitHub, and either Webhooks or GitHub Actions.
+Prerequisites
+
+Before you begin, make sure you have the following:
+
+    Access to a Virtual Private Server (VPS)
+    Basic understanding of Linux command-line
+    A GitHub account
+    A web application project hosted on GitHub
+
+In case you are using Google Cloud Platform like us, here is what we did:
+
+Creating a Virtual Machine (Compute Engine Instance):
+
+    You Navigate to the Compute Engine:
+    Now inside the GCP Console,
+    You go to the "Compute Engine" section.
+    You enable the Computer Engine API, then
+    You Create a New Instance:
+    Click on the "Create" button in order to create a new virtual machine instance.
+
+We Configured the Instance as such:
+
+    Provided a name for our instance. The name of Instance is ‘unix-project-instance’
+    Then we had to choose a region and zone for our instance.
+    We Chose the NA Montreal Region and for Zone we chose ‘northamerica-northeast1-a’
+  For Machine Type:
+    We selected the ‘n1-standard-1’ Machine Type (1 vCPU, 3.75 GB memory).
+  For Boot Disk:
+    We chose the operating system Linux-Debian 11. We configured the size of the boot disk to be
+    10GB, and the reason we chose 10 GB is because that amount is going to be sufficient for our
+    use.
+  Firewall Settings:
+    We Configured firewall settings. Ensured that we allowed HTTP (port 80) and HTTPS (port 443)
+    traffic. For the purpose of hosting a web application, and also allowed SSH port 22 for more secure connectivity.
+
+Setting Up the Virtual Private Server (VPS) 
+
+  Connect to your VPS:
+    
+    Connect to your VM instance using SSH, either through a local terminal or the
+    browser-based SSH client in the Google Cloud Console.
+
+    ssh user@your_vps_ip
+
+  Configure network settings and ensure connectivity:
+    Google Cloud Console Navigation:
+      Open the Google Cloud Console.
+      Navigate to "Compute Engine" > "VM instances."
+    SSH Key Generation:
+      Generate a new SSH key pair on your local machine using the ssh-keygen
+      command.
+    Add SSH Key to Google Cloud Console:
+      Copy the public key (id_rsa.pub) content.
+      In the Google Cloud Console, open the details of your instance.
+      Click "Edit" and paste the copied public key into the "SSH Keys" section.
+      Save the changes.
+    SSH Connection:
+      Connect to your Google Cloud instance using the private key and external IP
+      address.
+      Use the following command:
+      ssh -i /path/to/private_key username@external-ip-address
+      Our external ip address is 34.118.185.250
+    Verify Connectivity:
+      After successfully connecting, you should see a Linux welcome message and a
+      command prompt.
+    Network Configuration Checks:
+      Verify that your instance has the correct external IP address assigned.
+      Ensure that firewall rules allow incoming traffic on ports 80 (HTTP) and 443
+      (HTTPS) if you are hosting a web application.
+
+  Install Nginx HTTP Server:
+    sudo apt update
+    sudo apt install nginx
+
+  Configure the web server for basic functionality:
+    Connect to VM Instance:
+      Use SSH to connect to your VM instance.
+    Configure Nginx:
+      Install Nginx: sudo apt-get update && sudo apt-get install nginx -y
+      Open the default Nginx configuration file: sudo nano
+      /etc/nginx/sites-available/default
+    Configure Server Block:
+      Update the server block to point to your web content.
+    Example server block:
+      server {
+        listen 80 default_server;
+        listen [::]:80 default_server;
+        root /path/to/your/webcontent;
+        index index.html index.htm;
+        server_name your_server_ip;
+        location / {
+          root /path/to/your/webcontent;
+          index filename.html;
+          try_files $uri $uri/ =404;
+        }
+      }
+      Save the changes and exit.
+    Create Web Content:
+      Create the directory for your web content: sudo mkdir /path/to/your/webcontent
+      Move your HTML, CSS, and other files into this directory.
+    Set Permissions:
+      Ensure proper permissions for the web content directory:
+      sudo chown -R www-data:www-data /path/to/your/webcontent
+      sudo chmod -R 755 /path/to/your/webcontent
+    Restart Nginx:
+      Restart Nginx to apply the changes: sudo service nginx restart
+    Check Nginx Logs:
+      Check Nginx error logs for any issues: sudo tail -f /var/log/nginx/error.log
+      Access the Website:
+      Open a web browser and navigate to your VM instance's IP address.
+    Troubleshoot:
+      If encountering errors, check Nginx logs for details.
+      Ensure file paths, permissions, and configurations are correct
+
+  Install Apache HTTP Server:
+
+    sudo apt update
+    sudo apt install apache2
+    change the port of apache2 to 8080 since we will be using it for the webhooks
+
+  Enable Required Apache Modules (if not enabled already):
+
+    sudo a2enmod proxy
+    sudo a2enmod proxy_http
+    sudo systemctl restart apache2
+
+  Configuring Apache HTTP Server
+
+    Create a Virtual Host Configuration:
+        Edit the Apache configuration file, e.g., /etc/apache2/sites-available/my-web-app.conf.
+        Add configuration for your web application. Example Configuration:
+          <VirtualHost *:8080>
+            ServerAdmin webmaster@localhost
+            DocumentRoot /your/git/directory/
+
+            ErrorLog ${APACHE_LOG_DIR}/error.log
+            CustomLog ${APACHE_LOG_DIR}/access.log combined
+
+          <Directory "/your/git/directory/">
+            Options FollowSymLinks
+            AllowOverride All
+            Require all granted
+          </Directory>
+
+          DirectoryIndex filename.html
+
+          <Location "/webhook">
+            ProxyPass http://localhost:8081
+            ProxyPassReverse http://localhost:8081
+          </Location>
+        </VirtualHost>
+
+  Grant Permissions:
+
+    sudo chown -R www-data:www-data /path/to/your/web/app
+
+  Restart Apache:
+
+    sudo systemctl restart apache2
+
+  Setting Up GitHub Repository
+
+    Create a GitHub Repository:
+        Create a new repository on GitHub for your web application.
+
+  Clone the Repository on VPS:
+
+    git clone https://github.com/yourusername/your-repo.git /path/to/your/web/app
+
+  Configuring Webhooks for Automatic Deployment
+
+    Create a Deployment Script:
+        Write a deployment script, e.g., deploy.sh, that pulls changes from the GitHub repository and deploys the web application.
+
+  Grant Execute Permissions:
+
+    chmod +x /path/to/your/web/app/deploy.sh
+
+  Create a Webhook on GitHub:
+        Go to your GitHub repository -> Settings -> Webhooks.
+        Add a new webhook, specifying the payload URL as http://your_vps_ip:8080/webhook.
+        Set the webhook to trigger on push events.
+
+  Push Changes:
+        Push changes to your GitHub repository.
+
+  OR Using GitHub Actions for Automatic Deployment
+
+    Create a Workflow Configuration:
+        Create a workflow file, e.g., .github/workflows/deploy.yml.
+        Configure the workflow to run on specific events (e.g., push to the master branch).
+        Use the provided example in this conversation as a starting point.
+
+    Secrets:
+        Add necessary secrets to your GitHub repository (e.g., server SSH key, deployment-related credentials).
+
+    Push Changes:
+        Push changes to your GitHub repository.
+
+  Using scheduled execution of script:
+    Open the crontab editor with the following command:
+
+      crontab -e
+
+    If it's your first time, you may be prompted to choose an editor. Select your preferred editor (e.g., nano, vim).
+
+    Add a new line to schedule the deploy.sh script. For example, to run the script every minute, add the following line:
+
+      * * * * * /path/to/your/deploy.sh
+
+    Replace /path/to/your/deploy.sh with the actual path to your deploy.sh script.
+
+    The five asterisks represent the time and date settings for the cron job. In this case, it means "every minute of every hour, every day of the month, every month, and every day of the week."
+
+    Save the file and exit the editor.
+
+Conclusion
+
+  Your web application is now set up for automatic deployment. Any changes pushed to the GitHub repository will trigger the deployment process on your VPS.

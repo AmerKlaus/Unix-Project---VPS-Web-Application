@@ -1,0 +1,20 @@
+name: Deploy on Push
+
+on:
+  push:
+    branches:
+      - master  # Change this to your main branch name
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Install http-server
+        run: npm install -g http-server
+
+      - name: Deploy
+        run: bash deploy.sh
